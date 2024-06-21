@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Trainer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle de menú
+            document.querySelector('.menu-icon').addEventListener('click', function() {
+                document.querySelector('nav').classList.toggle('active');
+                this.classList.toggle('active');
+            });
+
+            fetchAppointments();
+
+            // Agregar evento submit al formulario
+            document.querySelector('form[action="submit_appointment.php"]').addEventListener('submit', function(event) {
+                event.preventDefault(); // Prevenir comportamiento por defecto
+
+                let formData = new FormData(this);
+
+                fetch('submit_appointment.php', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.href = 'index.html'; // Redirigir a la página principal
+                    } else {
+                        alert('Hubo un error al agendar la cita');
+                    }
+                }).catch(error => {
+                    alert('Hubo un error al agendar la cita');
+                    console.error('Error:', error);
+                });
+            });
+        });
+
+        function fetchAppointments() {
+            fetch('fetch_appointments.php')
+                .then(response => response.json())
+                .then(data => {
+                    let appointmentsTable = document.getElementById('appointmentsTable');
+                    appointmentsTable.innerHTML = '';
+
+                    data.forEach(appointment => {
+                        let statusText = appointment.status ? 'Completado' : 'Pendiente';
+                        let row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${appointment.client_name}</td>
+                            <td>${appointment.appointment_time}</td>
+                            <td>${statusText}</td>
+                            <td><button onclick="updateStatus(${appointment.id}, ${!appointment.status})">${statusText === 'Pendiente' ? 'Marcar como Completado' : 'Marcar como Pendiente'}</button></td>
+                        `;
+                        appointmentsTable.appendChild(row);
+                    });
+                });
+        }
+
+        function updateStatus(id, newStatus) {
+            fetch('update_status.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: id, status: newStatus })
+            })
+            .then(response => {
+                if (response.ok) {
+                    fetchAppointments(); // Refrescar la lista de citas
+                } else {
+                    alert('Hubo un error al actualizar el estado de la cita');
+                }
+            })
+            .catch(error => {
+                alert('Hubo un error al actualizar el estado de la cita');
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Wellness Center</h1>
+        <div class="menu-icon">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+        <nav>
+            <a href="about.html">Sobre mí</a>
+            <a href="services.html">Servicios</a>
+            <a href="Menu_Users.html">Lista de Usuarios</a>
+            <a href="#agenda">Agenda</a>
+        </nav>
+    </header>
+
+    <section id="agenda">
+        <h2>Agenda</h2>
+        <div class="agenda">
+            <h3>Agendar una cita</h3>
+            <form action="submit_appointment.php" method="post">
+                <label for="client_name">Nombre del Cliente:</label>
+                <input type="text" id="client_name" name="client_name" required>
+                <label for="appointment_time">Hora de la Cita:</label>
+                <input type="datetime-local" id="appointment_time" name="appointment_time" required>
+                <button type="submit">Agendar</button>
+            </form>
+        </div>
+        <div class="agenda">
+            <h3>Todas las Citas</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Hora de la Cita</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="appointmentsTable">
+                </tbody>
+            </table>
+        </div>
+    </section>
+</body>
+</html>

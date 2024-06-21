@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Trainer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Suponemos que el user_id está disponible como un atributo de datos en el body
+            const currentUserId = document.body.getAttribute('data-user-id');
+
+            // Toggle de menú
+            document.querySelector('.menu-icon').addEventListener('click', function() {
+                document.querySelector('nav').classList.toggle('active');
+                this.classList.toggle('active');
+            });
+
+            fetchEntrenadores(currentUserId);
+        });
+
+        function fetchEntrenadores(currentUserId) {
+            fetch('Menu_Users.php')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    let entrenadoresTable = document.getElementById('entrenadores');
+                    entrenadoresTable.innerHTML = '';
+
+                    data.forEach(entrenador => {
+                        let row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${entrenador.nombre}</td>
+                            <td>${currentUserId == 1 && entrenador.id !== 1 ? `<button onclick="confirmDelete(${entrenador.id})">Eliminar</button>` : ''}</td>
+                        `;
+                        entrenadoresTable.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al obtener entrenadores:', error);
+                });
+        }
+
+        function confirmDelete(id) {
+            if (confirm('Esta acción es irreversible. ¿Desea continuar?')) {
+                deleteEntrenador(id);
+            }
+        }
+
+        function deleteEntrenador(id) {
+            fetch('Menu_Users.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `delete_id=${id}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const currentUserId = document.body.getAttribute('data-user-id');
+                    fetchEntrenadores(currentUserId);
+                } else {
+                    alert('Error al eliminar el entrenador: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error al eliminar el entrenador:', error);
+            });
+        }
+    </script>
+</head>
+<body data-user-id="1"> <!-- Aquí se establece la ID del usuario actual para la demostración -->
+    <header>
+        <h1>Wellness Center</h1>
+        <div class="menu-icon">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+        <nav>
+            <a href="about.html">Sobre mí</a>
+            <a href="services.html">Servicios</a>
+            <a href="#agenda">Agenda</a>
+        </nav>
+    </header>
+
+    <section id="agenda">
+        <h2>Agenda</h2>
+
+        <div class="agenda">
+            <h3>Todas las Citas</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuarios</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="entrenadores">
+                </tbody>
+            </table>
+        </div>
+    </section>
+</body>
+</html>
